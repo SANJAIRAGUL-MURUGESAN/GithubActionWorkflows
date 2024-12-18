@@ -1,0 +1,65 @@
+name: Terraform S3 Bucket Deployment
+
+on:
+  workflow_call:
+    inputs:
+      terraform_directory:
+        description: 'Directory containing Terraform code'
+        required: true
+        type: string
+      aws_region:
+        description: 'AWS region for deployment'
+        required: true
+        type: string
+        default: 'us-east-1'
+      bucket_name:
+        description: 'Name of the S3 bucket to create'
+        required: true
+        type: string
+      environment:
+        description: 'Deployment environment (e.g., dev, prod)'
+        required: false
+        default: 'dev'
+    secrets:
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+
+jobs:
+  terraform-s3-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set AWS credentials
+      run: |
+        echo "AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }}" >> $GITHUB_ENV
+        echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+        echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.0
+
+    - name: Terraform Init
+      run: |
+        cd ${{ inputs.terraform_directory }}
+        terraform init
+
+    - name: Terraform Plan
+      run: |
+        cd ${{ inputs.terraform_directory }}
+        terraform plan -var "aws_region=${{ inputs.aws_region }}" \
+                       -var "bucket_name=${{ inputs.bucket_name }}" \
+                       -var "environment=${{ inputs.environment }}"
+
+    - name: Terraform Apply
+      run: |
+        cd ${{ inputs.terraform_directory }}
+        terraform apply -auto-approve \
+                        -var "aws_region=${{ inputs.aws_region }}" \
+                        -var "bucket_name=${{ inputs.bucket_name }}" \
+                        -var "environment=${{ inputs.environment }}"
