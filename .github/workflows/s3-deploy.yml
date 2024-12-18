@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy-s3:
-    uses: ./.github/workflows/terraform-s3-deploy.yml
+    uses: ./.github/workflows/terraform-deploy.yml
     with:
       terraform_directory: 'terraform/s3-bucket'
       aws_region: 'us-west-2'
