@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy-s3:
-    uses: Raghavendiran-2002/GithubActionWorkflows/.github/workflows/terraform-deploy.yml@main
+    uses: SANJAIRAGUL-MURUGESAN/GithubActionWorkflows/.github/workflows/terraform-deploy.yml@main
     with:
       aws_region: 'us-east-1'
     secrets:
