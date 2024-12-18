@@ -11,12 +11,6 @@ resource "aws_s3_bucket" "example_bucket" {
   }
 }
 
-# Create folder structure inside the bucket
-resource "aws_s3_object" "folder_structure" {
-
-  bucket = aws_s3_bucket.example_bucket.id
-  key    = "${each.value}/" # Appending `/` creates a folder
-}
 
 output "bucket_name" {
   value = aws_s3_bucket.example_bucket.bucket
