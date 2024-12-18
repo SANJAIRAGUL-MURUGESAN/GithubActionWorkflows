@@ -4,19 +4,17 @@ on:
   workflow_call:
     inputs:
       terraform_directory:
-        description: "Path to the Terraform directory"
         required: true
         type: string
       aws_region:
-        description: "AWS Region"
         required: true
         type: string
     secrets:
-      AWS_SESSION_TOKEN:
+      AWS_ACCESS_KEY_ID:
         required: true
       AWS_SECRET_ACCESS_KEY:
         required: true
-      AWS_ACCESS_KEY_ID:
+      AWS_SESSION_TOKEN:
         required: true
 
 jobs:
@@ -27,26 +25,25 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v3
 
-    - name: Terraform Init
-      working-directory: ${{ inputs.terraform_directory }}
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-      run: terraform init
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.6.0
 
-    - name: Terraform Plan
-      working-directory: ${{ inputs.terraform_directory }}
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-      run: terraform plan \ -var="aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}" \ -var="aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \ -var="aws_session_token=${{ secrets.AWS_SESSION_TOKEN }}" \ -var="aws_region=${{ inputs.aws_region }}"
+    - name: Initialize Terraform
+      run: terraform -chdir=${{ inputs.terraform_directory }} init
 
-    - name: Terraform Apply
-      working-directory: ${{ inputs.terraform_directory }}
+    - name: Plan Terraform
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-      run: terraform apply -auto-approve \ -var="aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}" \ -var="aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \ -var="aws_session_token=${{ secrets.AWS_SESSION_TOKEN }}" \ -var="aws_region=${{ inputs.aws_region }}"
+      run: terraform -chdir=${{ inputs.terraform_directory }} plan -var="aws_region=${{ inputs.aws_region }}"
+
+    - name: Apply Terraform
+      if: ${{ github.event_name == 'push' }}
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      run: terraform -chdir=${{ inputs.terraform_directory }} apply -auto-approve -var="aws_region=${{ inputs.aws_region }}"
