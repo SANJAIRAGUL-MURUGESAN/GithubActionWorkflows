@@ -11,8 +11,6 @@ jobs:
     with:
       terraform_directory: 'terraform/s3-bucket'
       aws_region: 'us-east-1'
-      bucket_name: 'raghav-terraform-s3-bucket'
-      environment: 'prod'
     secrets:
       AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
