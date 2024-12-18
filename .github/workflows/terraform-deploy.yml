@@ -1,65 +1,75 @@
-name: Terraform S3 Bucket Deployment
+name: Terraform Deploy
 
 on:
   workflow_call:
     inputs:
       terraform_directory:
-        description: 'Directory containing Terraform code'
+        description: "Path to the Terraform directory"
         required: true
         type: string
       aws_region:
-        description: 'AWS region for deployment'
+        description: "AWS Region"
         required: true
         type: string
-        default: 'us-east-1'
       bucket_name:
-        description: 'Name of the S3 bucket to create'
+        description: "S3 bucket name"
         required: true
         type: string
       environment:
-        description: 'Deployment environment (e.g., dev, prod)'
-        required: false
-        default: 'dev'
+        description: "Deployment environment (e.g., prod, dev)"
+        required: true
+        type: string
     secrets:
-      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SESSION_TOKEN:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      AWS_ACCESS_KEY_ID:
+        required: true
 
 jobs:
-  terraform-s3-deploy:
+  terraform:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    # Step 1: Checkout the repository
+    - name: Checkout Code
       uses: actions/checkout@v3
 
-    - name: Set AWS credentials
+    # Step 2: Configure AWS Credentials
+    - name: Configure AWS Credentials
+      env:
+        AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       run: |
-        echo "AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }}" >> $GITHUB_ENV
-        echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-        echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+        echo "AWS credentials configured successfully."
 
-    - name: Set up Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.5.0
-
-    - name: Terraform Init
+    # Step 3: Navigate to Terraform Directory
+    - name: Navigate to Terraform Directory
+      working-directory: ${{ inputs.terraform_directory }}
       run: |
-        cd ${{ inputs.terraform_directory }}
-        terraform init
+        echo "Navigated to Terraform directory: ${{ inputs.terraform_directory }}"
 
-    - name: Terraform Plan
-      run: |
-        cd ${{ inputs.terraform_directory }}
-        terraform plan -var "aws_region=${{ inputs.aws_region }}" \
-                       -var "bucket_name=${{ inputs.bucket_name }}" \
-                       -var "environment=${{ inputs.environment }}"
+    # Step 4: Initialize Terraform
+    - name: Initialize Terraform
+      working-directory: ${{ inputs.terraform_directory }}
+      run: terraform init
 
-    - name: Terraform Apply
+    # Step 5: Plan Terraform Changes
+    - name: Plan Terraform Changes
+      working-directory: ${{ inputs.terraform_directory }}
       run: |
-        cd ${{ inputs.terraform_directory }}
+        terraform plan \
+          -var="aws_region=${{ inputs.aws_region }}" \
+          -var="bucket_name=${{ inputs.bucket_name }}" \
+          -var="environment=${{ inputs.environment }}"
+
+    # Step 6: Apply Terraform Changes
+    - name: Apply Terraform Changes
+      working-directory: ${{ inputs.terraform_directory }}
+      run: |
         terraform apply -auto-approve \
-                        -var "aws_region=${{ inputs.aws_region }}" \
-                        -var "bucket_name=${{ inputs.bucket_name }}" \
-                        -var "environment=${{ inputs.environment }}"
+          -var="aws_region=${{ inputs.aws_region }}" \
+          -var="bucket_name=${{ inputs.bucket_name }}" \
+          -var="environment=${{ inputs.environment }}"
