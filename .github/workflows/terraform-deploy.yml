@@ -3,18 +3,16 @@ name: Terraform Deploy
 on:
   workflow_call:
     inputs:
-      terraform_directory:
-        required: true
-        type: string
       aws_region:
+        description: "AWS Region"
         required: true
         type: string
     secrets:
-      AWS_ACCESS_KEY_ID:
+      AWS_SESSION_TOKEN:
         required: true
       AWS_SECRET_ACCESS_KEY:
         required: true
-      AWS_SESSION_TOKEN:
+      AWS_ACCESS_KEY_ID:
         required: true
 
 jobs:
@@ -25,25 +23,23 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v3
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.6.0
-
-    - name: Initialize Terraform
-      run: terraform -chdir=${{ inputs.terraform_directory }} init
-
-    - name: Plan Terraform
+    - name: Terraform Init
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-      run: terraform -chdir=${{ inputs.terraform_directory }} plan -var="aws_region=${{ inputs.aws_region }}"
+      run: terraform init
 
-    - name: Apply Terraform
-      if: ${{ github.event_name == 'push' }}
+    - name: Terraform Plan
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-      run: terraform -chdir=${{ inputs.terraform_directory }} apply -auto-approve -var="aws_region=${{ inputs.aws_region }}"
+      run: terraform plan -var="aws_region=${{ inputs.aws_region }}"
+
+    - name: Terraform Apply
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      run: terraform apply -auto-approve -var="aws_region=${{ inputs.aws_region }}"
